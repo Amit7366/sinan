@@ -2,7 +2,10 @@ import React, { useState } from "react";
 import Swal from "sweetalert2";
 import { useAppDispatch, useAppSelector } from "../../../redux/features/hooks";
 import { useNavigate } from "react-router-dom";
-import { logOut, useCurrentToken } from "../../../redux/features/auth/authSlice";
+import {
+  logOut,
+  useCurrentToken,
+} from "../../../redux/features/auth/authSlice";
 import {
   useGetOrdersByEmailQuery,
   useViewOrdersQuery,
@@ -51,17 +54,16 @@ const MyAccount = () => {
   };
   const token = useAppSelector(useCurrentToken);
   const user = token ? verifyToken(token) : null;
-  console.log(user)
-  const { 
-    data: ordersData, 
-    isLoading, 
-    isError, 
-    error 
+  console.log(user);
+  const {
+    data: ordersData,
+    isLoading,
+    isError,
+    error,
   } = useGetOrdersByEmailQuery(user?.email, {
     skip: !user?.email, // Skip the query if user or user.email is undefined
   });
-  
-
+console.log("selectedOrder", selectedOrder);
   if (isLoading) {
     return <div>Loading orders...</div>;
   }
@@ -73,6 +75,7 @@ const MyAccount = () => {
   }
 
   const orders = ordersData?.data || []; // Assuming `data` contains the orders list
+  console.log(orders);
 
   console.log(orders);
   const handleViewOrder = (order) => {
@@ -88,7 +91,7 @@ const MyAccount = () => {
   // Define content for each tab
   const tabContent = {
     dashboard: (
-      <div>
+      <div >
         <h2 className="text-xl font-bold">Hello Sinan</h2>
         <p className="text-sm mt-2">
           From your account dashboard, you can view your{" "}
@@ -148,7 +151,7 @@ const MyAccount = () => {
                   </td>
                   <td className="border-b-[1px] text-sm border-gray-300 px-4 py-2">
                     <button
-                      className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800"
+                      className="bg-green-600 text-white px-4 py-2 rounded hover:bg-gray-800"
                       onClick={() => handleViewOrder(order)}
                     >
                       View
@@ -176,20 +179,22 @@ const MyAccount = () => {
               {selectedOrder.status}
             </p>
             <p>
-              <strong>Total Amount:</strong> ${selectedOrder.totalAmount}
+              <strong>Total Amount:</strong> ট {selectedOrder.totalAmount}
             </p>
             <p>
               <strong>User Info:</strong>{" "}
-              {`${selectedOrder.userInfo.firstName} ${selectedOrder.userInfo.lastName}, ${selectedOrder.userInfo.address}, ${selectedOrder.userInfo.city}, ${selectedOrder.userInfo.country}`}
+              {`${selectedOrder.userInfo.firstName} ${selectedOrder.userInfo.lastName}, ${selectedOrder.userInfo.address}, ${selectedOrder.userInfo.city}`}
             </p>
             <h3 className="mt-4 font-semibold">Items:</h3>
             <ul className="list-disc ml-5">
               {selectedOrder.items.map((item, idx) => (
                 <li key={idx}>
                   <p>
-                    <strong>Product ID:</strong> {item.productId},{" "}
-                    <strong>Price:</strong> ${item.price},{" "}
-                    <strong>Quantity:</strong> {item.quantity}
+                    <strong>Product Name:</strong> {item.name},{" "}
+                    <strong>Price:</strong> ট {item.price},{" "}
+                    <strong>Quantity:</strong> {item.quantity}{" "}
+                    <strong>Size:</strong>
+                    {item.size}{" "}
                   </p>
                 </li>
               ))}
@@ -207,10 +212,20 @@ const MyAccount = () => {
     address: <p>Manage your shipping and billing address here.</p>,
     accountDetails: <p>Edit your account details here.</p>,
     wishlist: <p>Your wishlist items will be displayed here.</p>,
-    logout: <p>You have logged out.. <button className="cursor-pointer px-3 py-2 rounded-md bg-red-600 text-white" onClick={setLogout}>Logout</button></p>,
+    logout: (
+      <p>
+        You have logged out..{" "}
+        <button
+          className="cursor-pointer px-3 py-2 rounded-md bg-red-600 text-white"
+          onClick={setLogout}
+        >
+          Logout
+        </button>
+      </p>
+    ),
   };
   return (
-    <div className="flex flex-col md:flex-row py-5  gap-4 px-6 mx-auto w-full max-w-7xl">
+    <div className="flex flex-col md:flex-row py-20  gap-4 px-6 mx-auto w-full max-w-7xl">
       {/* Sidebar Tabs */}
       <div className="w-full md:w-1/4 bg-white border rounded-md shadow-lg">
         <ul className="space-y-1">

@@ -1,6 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-
 import { Link } from "react-router-dom";
 import { useCreateOrderMutation } from "../OrderApi/orderApi";
 import { clearCart } from "../../../redux/features/cart/cartSlice";
@@ -11,18 +10,16 @@ const Checkout = () => {
   const dispatch = useDispatch();
   const products = useSelector((state) => state.cart.items);
   const subtotal = useSelector((state) => state.cart.totalPrice);
-  console.log(products)
   const [registration] = useRegistrationMutation();
-  console.log(products);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     city: "",
-    country: "",
     address: "",
     email: "",
     phone: "",
   });
+  const [uniqueEmail, setUniqueEmail] = useState("");
 
   const [createOrder, { isLoading, isSuccess, isError }] =
     useCreateOrderMutation();
@@ -31,27 +28,43 @@ const Checkout = () => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
+
   const handleClearCart = () => {
-    dispatch(clearCart()); // Assumes `clearCart` is an action in your Redux store
+    dispatch(clearCart());
   };
+
+  const generateUniqueEmail = () => {
+    const randomNumber = Math.floor(10000 + Math.random() * 90000); // Generates a 5-digit random number
+    return `sinanUser${randomNumber}@gmail.com`;
+  };
+  useEffect(() => {
+    setUniqueEmail(generateUniqueEmail());
+  }, []);
   const handleCreateOrder = async () => {
+    // Set the email to formData.email if available, else use uniqueEmail
+    const userEmail = formData.email || uniqueEmail;
     const orderData = {
-      userInfo: formData,
+      userInfo: {
+        ...formData,
+        email: userEmail,
+      },
       items: products.map((product) => ({
         productId: product.id,
+        name: product.name,
         quantity: product.quantity,
-        price: product.price,
+        price: product.salePrice,
+        size: parseInt(product.selectedSize),
       })),
       totalAmount: subtotal,
       status: "Pending",
     };
+    console.log(orderData);
     const normalUser = {
       password: "user12345",
       normalUser: {
         name: formData?.firstName,
-        email: formData?.email,
-        // ip: ip,
-        // country: country,
+        email: userEmail,
+        country: "Bangladesh",
         designation: "Client",
         username: "sharukh Khan",
         gender: "male",
@@ -65,61 +78,60 @@ const Checkout = () => {
         isDeleted: false,
       },
     };
+
     try {
-      // Show a loading modal while processing the order
       Swal.fire({
         title: "Signing in...",
         text: "Please wait a moment while we take your order...",
         allowOutsideClick: false,
         didOpen: () => {
-          Swal.showLoading(); // Show loading spinner
+          Swal.showLoading();
         },
       });
-
+      if (!userEmail) {
+        return;
+      }
       const user = await registration(normalUser);
       const response = await createOrder(orderData).unwrap();
 
-     
-
       if (response.statusCode === 201) {
-        console.log("Order created successfully:", response.message);
-
-        // Clear the cart after successful order creation
         handleClearCart();
-
-        // Show success message with the login URL
         Swal.fire({
           icon: "success",
-          title: "Order Created Successfully!",
+          title: "অর্ডার সম্পন্য হয়েছে!",
           html: `
-            <p>Your order has been created successfully.</p>
+            <p>আপনার অর্ডার সম্পন্য হয়েছে.</p>
             <p>You can log in to your account to track your order status:</p>
-            <a href="https://sinangiftcorner.web.app/login" target="_blank" style="color: #007BFF; font-weight: bold;">
-            <p>To manage your order and track its progress, you need to log in to your SINAN SHOP account using the credentials provided below:</p>
-            <p><strong>Email:</strong> ${formData?.email}</p>
+            <p><strong>Email:</strong> ${userEmail}</p>
             <p><strong>Password:</strong> user12345</p>
-              View My Order
-            </a>
           `,
           confirmButtonText: "Close",
         });
       }
-      if (user?.error?.status == 409) {
-        // Handle specific error messages
-        const errorMessage =
-          user?.error?.data?.errorSources[0]?.message || "Conflict error.";
+
+      if (user?.error?.status === 409) {
+        // const errorMessage =
+        //   user?.error?.data?.errorSources[0]?.message || "Conflict error.";
+        // Swal.fire({
+        //   icon: "error",
+        //   title: "Conflict Error",
+        //   text: errorMessage,
+        // });
+        // return;
         Swal.fire({
           icon: "success",
-          title: "Succeffully Take Your Order",
-          text: isSuccess,
+          title: "অর্ডার সম্পন্য হয়েছে!",
+          html: `
+            <p>আপনার অর্ডার সম্পন্য হয়েছে.</p>
+            <p>You can log in to your account to track your order status:</p>
+            <p><strong>Email:</strong> ${userEmail}</p>
+            <p><strong>Password:</strong> user12345</p>
+          `,
+          confirmButtonText: "Close",
         });
-        console.error("Error:", errorMessage);
-        return; // Exit the function here to avoid further processing
       }
     } catch (error) {
       console.error("Failed to create order:", error);
-
-      // Show error message
       Swal.fire({
         icon: "error",
         title: "Order Creation Failed",
@@ -132,7 +144,10 @@ const Checkout = () => {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-6 mx-auto w-full max-w-7xl">
       {/* Left Section */}
       <div className="p-4 w-full mx-auto">
-        <h2 className="text-xl font-bold mb-6">Billing details</h2>
+        <h3 className="text-base font-bold text-red-400 mb-2">
+          অর্ডার টি সম্পূর্ন করতে আপনার নাম, ঠিকানা নিচে লিখুনঃ-
+        </h3>
+        <h2 className="text-xl font-bold mb-6 text-green-600">বিলিংয়ের বিবরণ</h2>
         <form className="space-y-6">
           {/* Name Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -141,7 +156,7 @@ const Checkout = () => {
                 htmlFor="firstName"
                 className="block text-sm font-medium text-gray-700"
               >
-                First Name<span className="text-red-500">*</span>
+                নাম<span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -153,7 +168,7 @@ const Checkout = () => {
                 required
               />
             </div>
-            <div>
+            {/* <div>
               <label
                 htmlFor="lastName"
                 className="block text-sm font-medium text-gray-700"
@@ -169,31 +184,7 @@ const Checkout = () => {
                 className="mt-1 block w-full px-4 py-2 border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
                 required
               />
-            </div>
-          </div>
-
-          {/* Country/Region */}
-          <div>
-            <label
-              htmlFor="country"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Country/Region<span className="text-red-500">*</span>
-            </label>
-            <select
-              id="country"
-              name="country"
-              value={formData.country}
-              onChange={handleInputChange}
-              className="mt-1 block w-full px-4 py-2 border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
-              required
-            >
-              <option value="">---</option>
-              <option value="USA">USA</option>
-              <option value="Canada">Canada</option>
-              <option value="UK">UK</option>
-              {/* Add more country options */}
-            </select>
+            </div> */}
           </div>
 
           {/* Town/City */}
@@ -202,7 +193,7 @@ const Checkout = () => {
               htmlFor="city"
               className="block text-sm font-medium text-gray-700"
             >
-              Town/City<span className="text-red-500">*</span>
+              থানা/উপজেলা<span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -221,7 +212,7 @@ const Checkout = () => {
               htmlFor="address"
               className="block text-sm font-medium text-gray-700"
             >
-              Address<span className="text-red-500">*</span>
+              পূর্ণ ঠিকানা<span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -240,7 +231,7 @@ const Checkout = () => {
               htmlFor="phone"
               className="block text-sm font-medium text-gray-700"
             >
-              Phone Number<span className="text-red-500">*</span>
+              মোবাইল নাম্বার<span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -259,7 +250,8 @@ const Checkout = () => {
               htmlFor="email"
               className="block text-sm font-medium text-gray-700"
             >
-              Email<span className="text-red-500">*</span>
+              ইমেইল *(Optional)
+              {/* <span className="text-red-500">*</span> */}
             </label>
             <input
               type="email"
@@ -276,7 +268,7 @@ const Checkout = () => {
 
       {/* Right Section */}
       <div className="p-4 w-full mx-auto">
-        <h2 className="text-xl font-bold mb-4">Your order</h2>
+        <h2 className="text-xl font-bold mb-4">আপনার অর্ডার</h2>
         <div className="space-y-4">
           {products.map((product, index) => (
             <div key={index} className="flex justify-between items-center">
@@ -293,7 +285,9 @@ const Checkout = () => {
                   </p>
                 </div>
               </div>
-              <p className="text-sm font-medium">${product.price.toFixed(2)}</p>
+              <p className="text-sm font-medium">
+                {(product.salePrice * product.quantity).toFixed(2)} ট
+              </p>
             </div>
           ))}
         </div>
@@ -301,7 +295,7 @@ const Checkout = () => {
         <div className="border-t mt-4 pt-4">
           <div className="flex justify-between items-center">
             <p className="text-sm font-medium">Total</p>
-            <p className="text-lg font-bold">${subtotal.toFixed(2)}</p>
+            <p className="text-lg font-bold">ট {subtotal.toFixed(2)}</p>
           </div>
         </div>
 
@@ -309,9 +303,9 @@ const Checkout = () => {
           <button
             onClick={handleCreateOrder}
             disabled={isLoading}
-            className="w-full bg-black text-white py-2 text-sm font-medium rounded hover:bg-gray-800"
+            className="w-full bg-green-600 text-white py-2 text-sm font-medium rounded hover:bg-gray-800"
           >
-            {isLoading ? "Placing Order..." : "Place Order"}
+            {isLoading ? "অর্ডার তৈরি হচ্ছে..." : "অর্ডার দিন"}
           </button>
           {isSuccess && (
             <p className="text-green-500">Order created successfully!</p>
